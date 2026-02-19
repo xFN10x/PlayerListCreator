@@ -4,7 +4,7 @@
   "description": "A javascript node program for listing info about all the players who have played on a Minecraft world.",
   "main": "list-maker.ts",
   "scripts": {
-    "run": "echo node list-maker.ts"
+    "app": "node list-maker.ts"
   },
   "author": "xFN10x",
   "license": "GPL-3.0-or-later",
