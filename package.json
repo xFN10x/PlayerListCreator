@@ -2,13 +2,17 @@
   "name": "playerlistcreator",
   "version": "1.0.0",
   "description": "A javascript node program for listing info about all the players who have played on a Minecraft world.",
-  "main": "list-maker.js",
+  "main": "list-maker.ts",
   "scripts": {
-    "run": "node list-maker.js"
+    "run": "echo node list-maker.ts"
   },
   "author": "xFN10x",
   "license": "GPL-3.0-or-later",
   "dependencies": {
     "prismarine-nbt": "^2.8.0"
-  }
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3"
+  },
+  "type": "module"
 }
