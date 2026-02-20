@@ -2,27 +2,29 @@ import nbt from "prismarine-nbt";
 import readline from "node:readline";
 import fs from "node:fs";
 import { exit } from "node:process";
-import { fileURLToPathBuffer } from "node:url";
 
 const rl = readline.createInterface(process.stdin, process.stdout);
 
 class PlayerType {
-  static be = 0;
+  static be = 1;
   static je = 0;
 }
 
 class UUID {
+  toString;
   constructor(ints: number[], playerType: number) {
+    function getUUIDPart(part: number, array: number[]): string {
+      return (array[part] >>> 0).toString(16);
+    }
     const intArray = ints;
-    const uuidString =
-      playerType == PlayerType.be
-        ? `${parseInt(`${intArray[2].toString(16)}${intArray[3].toString(16)}`)}`
-        : ``;
-        console.log(uuidString)
-        console.log(`${intArray[2].toString(16)}${intArray[3].toString(16)}`)
+    const uuidString = `${getUUIDPart(0, intArray)}${getUUIDPart(1, intArray)}${getUUIDPart(2, intArray)}${getUUIDPart(3, intArray)}`;
+    this.toString = function (): string {
+      return uuidString;
+    };
   }
 }
 
+console.clear();
 console.log("Player List Maker by xFN10x");
 
 function resolve(baseString: string, ...paths: string[]): string {
@@ -32,7 +34,28 @@ function resolve(baseString: string, ...paths: string[]): string {
   return `${parsedBase}${parsedBase.endsWith("/") ? "" : "/"}${parsedPaths}`;
 }
 
-function getUsername(params: UUID) {}
+function getUsername(id: UUID) {
+  const url = `https://playerdb.co/api/player/minecraft/${id.toString()}`;
+  console.info(`Fetching: ${url}`);
+  fetch(url)
+    .then((res) => {
+      if (!res.ok) {
+        console.log(
+          `Failed to resolve username. ${res.status}: ${res.statusText} `,
+        );
+        return undefined;
+      }
+      return res.json();
+    })
+    .then((js) => {
+      if (js === undefined) return;
+      if (js.success) {
+
+      } else {
+        console.error(`Failed to lookup username; ${js}`)
+      }
+    });
+}
 
 function start() {
   rl.question("Minecraft world folder (type 'exit' to exit): ", (folder) => {
@@ -115,17 +138,12 @@ function start() {
                                 );
                               }
                             }
-                            switch (typeOfPlayer) {
-                              case PlayerType.je:
-                                fetch(
-                                  `https://playerdb.co/api/player/minecraft/${getUsername(new UUID(parsed.value["UUID"].value, typeOfPlayer))}`,
-                                );
-                                break;
-
-                              default:
-                                break;
-                            }
-                            //console.log(`Found Player: ${}`)
+                            getUsername(
+                              new UUID(
+                                parsed.value["UUID"]?.value,
+                                typeOfPlayer,
+                              ),
+                            );
                           } else {
                             throw new Error(
                               `Unexpected type while parsing nbt: Type of UUID is ${parsed.value["UUID"]?.type}`,
