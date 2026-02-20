@@ -1,4 +1,4 @@
-import nbt, { NBT } from "prismarine-nbt";
+import nbt from "prismarine-nbt";
 import readline from "node:readline";
 import fs from "node:fs";
 import { exit } from "node:process";
@@ -159,6 +159,33 @@ function start() {
                               );
                             }
                           });
+                          console.log("Players found.");
+                          rl.question(
+                            "How do you want this list? ('md', 'txt', default: txt) ",
+                            (a) => {
+                              console.log("Writing file...");
+                              var data = new String();
+                              switch (a) {
+                                case "md":
+                                  data += `**Players & Cords in _${levelName}_**\n\n`;
+                                  playersAndData.forEach((v, k) => {
+                                    data += `- **\`${k}\`**: ${v}\n`;
+                                  });
+                                  break;
+
+                                default:
+                                  data += `Players & Cords in ${levelName}\n`;
+                                  playersAndData.forEach((v, k) => {
+                                    data += `- ${k}: ${v}\n`;
+                                  });
+                                  break;
+                              }
+                              const path = `output.${a === "md" ? "md" : "txt"}`;
+                              fs.writeFile(path, data.toString(), () => {
+                                console.log(`File wrote to: ${path}`);
+                              });
+                            },
+                          );
                         },
                       );
                     }
