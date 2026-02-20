@@ -1,4 +1,4 @@
-import nbt from "prismarine-nbt";
+import nbt, { NBT } from "prismarine-nbt";
 import readline from "node:readline";
 import fs from "node:fs";
 import { exit } from "node:process";
@@ -34,10 +34,11 @@ function resolve(baseString: string, ...paths: string[]): string {
   return `${parsedBase}${parsedBase.endsWith("/") ? "" : "/"}${parsedPaths}`;
 }
 
-function getUsername(id: UUID) {
+function getUsername(id: UUID): Promise<string | void> {
   const url = `https://playerdb.co/api/player/minecraft/${id.toString()}`;
   console.info(`Fetching: ${url}`);
-  fetch(url)
+  var name;
+  return fetch(url)
     .then((res) => {
       if (!res.ok) {
         console.log(
@@ -50,9 +51,10 @@ function getUsername(id: UUID) {
     .then((js) => {
       if (js === undefined) return;
       if (js.success) {
-
+        //console.log(`Success! ${JSON.stringify(js)}`);
+        return js.data.player.username;
       } else {
-        console.error(`Failed to lookup username; ${js}`)
+        console.error(`Failed to lookup username; ${JSON.stringify(js)}`);
       }
     });
 }
@@ -109,48 +111,56 @@ function start() {
                     if (v.endsWith(".dat")) {
                       //read je & be players usernames with: https://playerdb.co/
                       // or use geyser for be? https://api.geysermc.org/v2/xbox/gamertag/(uuid as an int, hex->int)
-                      fs.readFile(resolve(playerDataPath, v), (err, data) => {
-                        if (err) {
-                          console.error(
-                            `Failed to read player data for file ${v}! Continuing, (${err.message})`,
-                          );
-                          return;
-                        }
-
-                        nbt.parse(data).then((v) => {
-                          const parsed = v.parsed;
-                          if (parsed.value["UUID"]?.type === "intArray") {
-                            const uuidArray = parsed.value["UUID"]?.value;
-                            var typeOfPlayer = PlayerType.je;
-                            if (uuidArray[0] == 0 && uuidArray[1] == 0) {
-                              typeOfPlayer = PlayerType.be;
-                              if (!askedForGeyser) {
-                                askedForGeyser = true;
-                                rl.question(
-                                  "A Geyser Xbox UUID was found, do you want to enable Xbox Gamertag lookups? (y/n) ",
-                                  (a) => {
-                                    if (a === "y") {
-                                      typeOfPlayer = PlayerType.je;
-                                    } else {
-                                      return;
-                                    }
-                                  },
-                                );
-                              }
-                            }
-                            getUsername(
-                              new UUID(
-                                parsed.value["UUID"]?.value,
-                                typeOfPlayer,
-                              ),
+                      fs.readFile(
+                        resolve(playerDataPath, v),
+                        async (err, data) => {
+                          if (err) {
+                            console.error(
+                              `Failed to read player data for file ${v}! Continuing, (${err.message})`,
                             );
-                          } else {
-                            throw new Error(
-                              `Unexpected type while parsing nbt: Type of UUID is ${parsed.value["UUID"]?.type}`,
-                            );
+                            return;
                           }
-                        });
-                      });
+                          var playersAndData = new Map<
+                            string,
+                            Record<string, any>
+                          >();
+                          await nbt.parse(data).then(async (v) => {
+                            const parsed = v.parsed;
+                            if (parsed.value["UUID"]?.type === "intArray") {
+                              const uuidArray = parsed.value["UUID"]?.value;
+                              var typeOfPlayer = PlayerType.je;
+                              if (uuidArray[0] == 0 && uuidArray[1] == 0) {
+                                typeOfPlayer = PlayerType.be;
+                                if (!askedForGeyser) {
+                                  askedForGeyser = true;
+                                  rl.question(
+                                    "A Geyser Xbox UUID was found, do you want to enable Xbox Gamertag lookups? (y/n) ",
+                                    (a) => {
+                                      if (a === "y") {
+                                        typeOfPlayer = PlayerType.je;
+                                      } else {
+                                        return;
+                                      }
+                                    },
+                                  );
+                                }
+                              }
+                              const uuid = parsed.value["UUID"]?.value;
+                              const Uuid = new UUID(uuid, typeOfPlayer);
+                              const name = await getUsername(Uuid);
+                              if (!name) throw new Error("Failed to get name.");
+                              playersAndData.set(name, parsed.value);
+                              console.log(
+                                `Found Player: ${name} (${Uuid.toString()})`,
+                              );
+                            } else {
+                              throw new Error(
+                                `Unexpected type while parsing nbt: Type of UUID is ${parsed.value["UUID"]?.type}`,
+                              );
+                            }
+                          });
+                        },
+                      );
                     }
                   });
                 });
