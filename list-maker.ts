@@ -2,6 +2,7 @@ import nbt from "prismarine-nbt";
 import readline from "node:readline";
 import fs from "node:fs";
 import { exit } from "node:process";
+import { fileURLToPathBuffer } from "node:url";
 
 const rl = readline.createInterface(process.stdin, process.stdout);
 
@@ -23,19 +24,64 @@ function start() {
     try {
       if (fs.existsSync(folder)) {
         const playerDataPath = resolve(folder, "playerdata");
-        if (fs.existsSync(playerDataPath)) {
+        const levelDat = resolve(folder, "level.dat");
+        console.log(levelDat);
+        if (fs.existsSync(playerDataPath) && fs.existsSync(levelDat)) {
+          var levelName: string | null = null;
+          //try to read stuff from level data
+          fs.readFile(levelDat, (err, data) => {
+            if (err) {
+              console.error(
+                `Failed to read world data! Trying to proceed anyways! (${err.message})`,
+              );
+              return;
+            }
+            nbt
+              .parse(data)
+              .then((v) => {
+                const data = v.parsed.value["Data"];
+                if (data !== undefined && data.type === "compound") {
+                  const name = data.value["LevelName"]?.value;
+                  //console.log(JSON.stringify(v.parsed.value));
+                  if (typeof name === "string") {
+                    levelName = name;
+                  }
+                }
+              })
+              .finally(() => {
+                //next step
+                console.log(
+                  `Detected world: ${levelName === null ? "(name not found)" : levelName} `,
+                );
+                console.log("Finding players...");
+                fs.readdir(playerDataPath, (err, files) => {
+                  if (err) {
+                    console.error(
+                      `Failed to read player data! (${err.message})`,
+                    );
+                    return;
+                  }
+
+                  files.forEach(v => {
+                    if (v.endsWith(".dat")) {
+                      
+                    }
+                  })
+                });
+              });
+          });
         } else {
-          console.log("Not a Minecraft world!");
+          console.error("Not a Minecraft world!");
           start();
           return;
         }
       } else {
-        console.log("That folder doesn't exist!");
+        console.error("That folder doesn't exist!");
         start();
         return;
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
       start();
       return;
     }
