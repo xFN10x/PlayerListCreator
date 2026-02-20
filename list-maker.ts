@@ -12,6 +12,7 @@ class PlayerType {
 
 class UUID {
   toString;
+  playerType: number;
   constructor(ints: number[], playerType: number) {
     function getUUIDPart(part: number, array: number[]): string {
       return (array[part] >>> 0).toString(16);
@@ -21,6 +22,7 @@ class UUID {
     this.toString = function (): string {
       return uuidString;
     };
+    this.playerType = playerType;
   }
 }
 
@@ -36,7 +38,7 @@ function resolve(baseString: string, ...paths: string[]): string {
 
 function getUsername(id: UUID): Promise<string | void> {
   const url = `https://playerdb.co/api/player/minecraft/${id.toString()}`;
-  console.info(`Fetching: ${url}`);
+  //console.info(`Fetching: ${url}`);
   var name;
   return fetch(url)
     .then((res) => {
@@ -92,105 +94,98 @@ function start() {
                   }
                 }
               })
-              .finally(() => {
+              .finally(async () => {
                 //next step
                 console.log(
                   `Detected world: ${levelName === null ? "(name not found)" : levelName} `,
                 );
                 console.log("Finding players...");
-                fs.readdir(playerDataPath, (err, files) => {
-                  if (err) {
-                    console.error(`Failed to read player data!`);
-                    throw err;
-                  }
+                await fs.promises
+                  .readdir(playerDataPath)
+                  .then(async (files) => {
+                    var askedForGeyser = false;
+                    var playersAndData = new Map<string, Record<string, any>>();
 
-                  var askedForGeyser = false;
-
-                  //now actually parse players
-                  files.forEach((v) => {
-                    if (v.endsWith(".dat")) {
-                      //read je & be players usernames with: https://playerdb.co/
-                      // or use geyser for be? https://api.geysermc.org/v2/xbox/gamertag/(uuid as an int, hex->int)
-                      fs.readFile(
-                        resolve(playerDataPath, v),
-                        async (err, data) => {
-                          if (err) {
-                            console.error(
-                              `Failed to read player data for file ${v}! Continuing, (${err.message})`,
-                            );
-                            return;
-                          }
-                          var playersAndData = new Map<
-                            string,
-                            Record<string, any>
-                          >();
-                          await nbt.parse(data).then(async (v) => {
-                            const parsed = v.parsed;
-                            if (parsed.value["UUID"]?.type === "intArray") {
-                              const uuidArray = parsed.value["UUID"]?.value;
-                              var typeOfPlayer = PlayerType.je;
-                              if (uuidArray[0] == 0 && uuidArray[1] == 0) {
-                                typeOfPlayer = PlayerType.be;
-                                if (!askedForGeyser) {
-                                  askedForGeyser = true;
-                                  rl.question(
-                                    "A Geyser Xbox UUID was found, do you want to enable Xbox Gamertag lookups? (y/n) ",
-                                    (a) => {
-                                      if (a === "y") {
-                                        typeOfPlayer = PlayerType.je;
-                                      } else {
-                                        return;
-                                      }
-                                    },
-                                  );
+                    //now actually parse players
+                    for (const v of files) {
+                      if (v.endsWith(".dat")) {
+                        //read je & be players usernames with: https://playerdb.co/
+                        // or use geyser for be? https://api.geysermc.org/v2/xbox/gamertag/(uuid as an int, hex->int)
+                        await fs.promises
+                          .readFile(resolve(playerDataPath, v))
+                          .then(async (data) => {
+                            await nbt.parse(data).then(async (v) => {
+                              const parsed = v.parsed;
+                              if (parsed.value["UUID"]?.type === "intArray") {
+                                const uuidArray = parsed.value["UUID"]?.value;
+                                var typeOfPlayer = PlayerType.je;
+                                if (uuidArray[0] == 0 && uuidArray[1] == 0) {
+                                  if (!askedForGeyser) {
+                                    askedForGeyser = true;
+                                    const a = await new Promise<string>((res) =>
+                                      rl.question(
+                                        "A Geyser Xbox UUID was found, do you want to enable Xbox Gamertag lookups? (y/n) ",
+                                        res,
+                                      ),
+                                    );
+                                    if (a === "y") {
+                                      typeOfPlayer = PlayerType.be;
+                                    } else {
+                                      return;
+                                    }
+                                  }
                                 }
+                                const uuid = parsed.value["UUID"]?.value;
+                                const Uuid = new UUID(uuid, typeOfPlayer);
+                                const name = await getUsername(Uuid);
+                                if (!name)
+                                {
+                                  console.error("Failed to get player.")
+                                  return;
+                                }
+                                playersAndData.set(name, parsed.value);
+                                console.log(
+                                  `Found Player: ${name} (${Uuid.toString()})`,
+                                );
+                              } else {
+                                throw new Error(
+                                  `Unexpected type while parsing nbt: Type of UUID is ${parsed.value["UUID"]?.type}`,
+                                );
                               }
-                              const uuid = parsed.value["UUID"]?.value;
-                              const Uuid = new UUID(uuid, typeOfPlayer);
-                              const name = await getUsername(Uuid);
-                              if (!name) throw new Error("Failed to get name.");
-                              playersAndData.set(name, parsed.value);
-                              console.log(
-                                `Found Player: ${name} (${Uuid.toString()})`,
-                              );
-                            } else {
-                              throw new Error(
-                                `Unexpected type while parsing nbt: Type of UUID is ${parsed.value["UUID"]?.type}`,
-                              );
-                            }
+                            });
                           });
-                          console.log("Players found.");
-                          rl.question(
-                            "How do you want this list? ('md', 'txt', default: txt) ",
-                            (a) => {
-                              console.log("Writing file...");
-                              var data = new String();
-                              switch (a) {
-                                case "md":
-                                  data += `**Players & Cords in _${levelName}_**\n\n`;
-                                  playersAndData.forEach((v, k) => {
-                                    data += `- **\`${k}\`**: ${v}\n`;
-                                  });
-                                  break;
-
-                                default:
-                                  data += `Players & Cords in ${levelName}\n`;
-                                  playersAndData.forEach((v, k) => {
-                                    data += `- ${k}: ${v}\n`;
-                                  });
-                                  break;
-                              }
-                              const path = `output.${a === "md" ? "md" : "txt"}`;
-                              fs.writeFile(path, data.toString(), () => {
-                                console.log(`File wrote to: ${path}`);
-                              });
-                            },
-                          );
-                        },
-                      );
+                      }
                     }
+
+                    console.log("Players found.");
+                    rl.question(
+                      "How do you want this list? ('md', 'txt', default: txt) ",
+                      (a) => {
+                        console.log("Writing file...");
+                        var data = new String();
+                        switch (a) {
+                          case "md":
+                            data += `**Players & Cords in _${levelName}_**\n\n`;
+                            playersAndData.forEach((v, k) => {
+                              data += `- **\`${k}\`**: ${v}\n`;
+                            });
+                            break;
+
+                          default:
+                            data += `Players & Cords in ${levelName}\n`;
+                            playersAndData.forEach((v, k) => {
+                              data += `- ${k}: ${v}\n`;
+                            });
+                            break;
+                        }
+                        const path = `output.${a === "md" ? "md" : "txt"}`;
+                        fs.writeFile(path, data.toString(), () => {
+                          console.log(`File wrote to: ${path}`);
+                        });
+                        return;
+                      },
+                    );
                   });
-                });
               });
           });
         } else {
