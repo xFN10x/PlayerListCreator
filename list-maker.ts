@@ -2,6 +2,7 @@ import nbt from "prismarine-nbt";
 import readline from "node:readline";
 import fs from "node:fs";
 import { exit } from "node:process";
+import { setTimeout } from "node:timers/promises";
 
 const rl = readline.createInterface(process.stdin, process.stdout);
 
@@ -37,6 +38,16 @@ function resolve(baseString: string, ...paths: string[]): string {
   const parsedPaths = paths.join("/");
 
   return `${parsedBase}${parsedBase.endsWith("/") ? "" : "/"}${parsedPaths}`;
+}
+
+function posToString(pos: any): string {
+  if (!pos || !Array.isArray(pos)) return `(Failed to get coords Type: ${typeof pos})`;
+  var sb = new String();
+  for (const number of pos) {
+    if (pos.indexOf(number) == pos.length - 1) sb += `${number.toFixed(0)}`;
+    else sb += `${number.toFixed(0)}, `;
+  }
+  return sb.toString();
 }
 
 function getUsername(id: UUID): Promise<string | void> {
@@ -77,7 +88,7 @@ function getUsername(id: UUID): Promise<string | void> {
         })
         .then((js) => {
           if (js === undefined) return;
-          return js.gamertag;
+          return "(Bedrock) " + js.gamertag;
         });
   }
 }
@@ -92,7 +103,7 @@ function start() {
       if (fs.existsSync(folder)) {
         const playerDataPath = resolve(folder, "playerdata");
         const levelDat = resolve(folder, "level.dat");
-        console.log(levelDat);
+        //console.log(levelDat);
         if (fs.existsSync(playerDataPath) && fs.existsSync(levelDat)) {
           var levelName: string | null = null;
           //try to read stuff from level data
@@ -184,7 +195,10 @@ function start() {
                                 const name = await getUsername(Uuid);
                                 if (!name) {
                                   console.error("Failed to get player.");
-                                  playersAndData.set(Uuid.toString(), parsed.value);
+                                  playersAndData.set(
+                                    Uuid.toString(),
+                                    parsed.value,
+                                  );
                                   return;
                                 }
                                 playersAndData.set(name, parsed.value);
@@ -211,20 +225,27 @@ function start() {
                           case "md":
                             data += `**Players & Cords in _${levelName}_**\n\n`;
                             playersAndData.forEach((v, k) => {
-                              data += `- **\`${k}\`**: ${v["Pos"]?.value}\n`;
+                              data += `- **\`${k}\`**: ${v["Pos"]?.type === "list" ? posToString(v["Pos"]?.value.value) : ""}\n`;
                             });
                             break;
 
                           default:
                             data += `Players & Cords in ${levelName}\n`;
                             playersAndData.forEach((v, k) => {
-                              data += `- ${k}: ${v}\n`;
+                              data += `- ${k}: ${v["Pos"]?.type === "list" ? posToString(v["Pos"]?.value.value) : ""}\n`;
                             });
                             break;
                         }
                         const path = `output.${a === "md" ? "md" : "txt"}`;
-                        fs.writeFile(path, data.toString(), () => {
+                        fs.writeFile(path, data.toString(), async () => {
                           console.log(`File wrote to: ${path}`);
+                          console.log("Exiting in 3...")
+                          await setTimeout(1000)
+                          console.log("Exiting in 2...")
+                          await setTimeout(1000)
+                          console.log("Exiting in 1...")
+                          await setTimeout(1000)
+                          exit();
                         });
                         return;
                       },
