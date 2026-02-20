@@ -18,7 +18,10 @@ class UUID {
       return (array[part] >>> 0).toString(16);
     }
     const intArray = ints;
-    const uuidString = `${getUUIDPart(0, intArray)}${getUUIDPart(1, intArray)}${getUUIDPart(2, intArray)}${getUUIDPart(3, intArray)}`;
+    var uuidString: string;
+    if (playerType == PlayerType.je)
+      uuidString = `${getUUIDPart(0, intArray)}${getUUIDPart(1, intArray)}${getUUIDPart(2, intArray)}${getUUIDPart(3, intArray)}`;
+    else uuidString = `${getUUIDPart(2, intArray)}${getUUIDPart(3, intArray)}`;
     this.toString = function (): string {
       return uuidString;
     };
@@ -37,28 +40,46 @@ function resolve(baseString: string, ...paths: string[]): string {
 }
 
 function getUsername(id: UUID): Promise<string | void> {
-  const url = `https://playerdb.co/api/player/minecraft/${id.toString()}`;
-  //console.info(`Fetching: ${url}`);
-  var name;
-  return fetch(url)
-    .then((res) => {
-      if (!res.ok) {
-        console.log(
-          `Failed to resolve username. ${res.status}: ${res.statusText} `,
-        );
-        return undefined;
-      }
-      return res.json();
-    })
-    .then((js) => {
-      if (js === undefined) return;
-      if (js.success) {
-        //console.log(`Success! ${JSON.stringify(js)}`);
-        return js.data.player.username;
-      } else {
-        console.error(`Failed to lookup username; ${JSON.stringify(js)}`);
-      }
-    });
+  var url: string;
+  switch (id.playerType) {
+    case PlayerType.je:
+      url = `https://playerdb.co/api/player/minecraft/${id.toString()}`;
+      return fetch(url)
+        .then((res) => {
+          if (!res.ok) {
+            console.log(
+              `Failed to resolve username. ${res.status}: ${res.statusText} (${url})`,
+            );
+            return undefined;
+          }
+          return res.json();
+        })
+        .then((js) => {
+          if (js === undefined) return;
+          if (js.success) {
+            return js.data.player.username;
+          } else {
+            console.error(`Failed to lookup username; ${JSON.stringify(js)}`);
+          }
+        });
+
+    default:
+      url = `https://api.geysermc.org/v2/xbox/gamertag/${parseInt(id.toString(), 16)}`;
+      return fetch(url)
+        .then((res) => {
+          if (!res.ok) {
+            console.log(
+              `Failed to resolve username. ${res.status}: ${res.statusText} (${url})`,
+            );
+            return undefined;
+          }
+          return res.json();
+        })
+        .then((js) => {
+          if (js === undefined) return;
+          return js.gamertag;
+        });
+  }
 }
 
 function start() {
@@ -104,9 +125,29 @@ function start() {
                   .readdir(playerDataPath)
                   .then(async (files) => {
                     var askedForGeyser = false;
-                    var playersAndData = new Map<string, Record<string, any>>();
+                    var playersAndData = new Map<
+                      string,
+                      Record<
+                        string,
+                        | nbt.Compound
+                        | nbt.Byte
+                        | nbt.Short
+                        | nbt.Int
+                        | nbt.Long
+                        | nbt.Float
+                        | nbt.Double
+                        | nbt.String
+                        | nbt.List<nbt.TagType>
+                        | nbt.ByteArray
+                        | nbt.ShortArray
+                        | nbt.IntArray
+                        | nbt.LongArray
+                        | undefined
+                      >
+                    >();
 
                     //now actually parse players
+                    var geyserEnabled = false;
                     for (const v of files) {
                       if (v.endsWith(".dat")) {
                         //read je & be players usernames with: https://playerdb.co/
@@ -129,18 +170,21 @@ function start() {
                                       ),
                                     );
                                     if (a === "y") {
+                                      geyserEnabled = true;
                                       typeOfPlayer = PlayerType.be;
                                     } else {
                                       return;
                                     }
+                                  } else if (geyserEnabled) {
+                                    typeOfPlayer = PlayerType.be;
                                   }
                                 }
                                 const uuid = parsed.value["UUID"]?.value;
                                 const Uuid = new UUID(uuid, typeOfPlayer);
                                 const name = await getUsername(Uuid);
-                                if (!name)
-                                {
-                                  console.error("Failed to get player.")
+                                if (!name) {
+                                  console.error("Failed to get player.");
+                                  playersAndData.set(Uuid.toString(), parsed.value);
                                   return;
                                 }
                                 playersAndData.set(name, parsed.value);
@@ -167,7 +211,7 @@ function start() {
                           case "md":
                             data += `**Players & Cords in _${levelName}_**\n\n`;
                             playersAndData.forEach((v, k) => {
-                              data += `- **\`${k}\`**: ${v}\n`;
+                              data += `- **\`${k}\`**: ${v["Pos"]?.value}\n`;
                             });
                             break;
 

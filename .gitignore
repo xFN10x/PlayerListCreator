@@ -144,4 +144,6 @@ vite.config.ts.timestamp-*
 .vite/
 
 testing
-output.*
+output.md
+output.txt
+output.html
