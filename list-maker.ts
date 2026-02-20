@@ -64,7 +64,8 @@ function start() {
 
                   files.forEach(v => {
                     if (v.endsWith(".dat")) {
-                      
+                      //read je & be players usernames with: https://playerdb.co/
+                      // or use geyser for be? https://api.geysermc.org/v2/xbox/gamertag/(uuid as an int, hex->int)
                     }
                   })
                 });
