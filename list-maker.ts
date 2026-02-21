@@ -1,8 +1,11 @@
-import nbt from "prismarine-nbt";
 import readline from "node:readline";
 import fs from "node:fs";
 import { exit } from "node:process";
 import { setTimeout } from "node:timers/promises";
+import { createRequire } from "node:module";
+if (fs.existsSync("lib/nbt.js")) require = createRequire(`${process.cwd()}/lib/nbt.js`);
+else require = createRequire(`${process.cwd()}/node_modules/prismarine-nbt/nbt.js`);
+import nbt from "prismarine-nbt";
 
 const rl = readline.createInterface(process.stdin, process.stdout);
 
@@ -41,7 +44,8 @@ function resolve(baseString: string, ...paths: string[]): string {
 }
 
 function posToString(pos: any): string {
-  if (!pos || !Array.isArray(pos)) return `(Failed to get coords Type: ${typeof pos})`;
+  if (!pos || !Array.isArray(pos))
+    return `(Failed to get coords Type: ${typeof pos})`;
   var sb = new String();
   for (const number of pos) {
     if (pos.indexOf(number) == pos.length - 1) sb += `${number.toFixed(0)}`;
@@ -239,12 +243,12 @@ function start() {
                         const path = `output.${a === "md" ? "md" : "txt"}`;
                         fs.writeFile(path, data.toString(), async () => {
                           console.log(`File wrote to: ${path}`);
-                          console.log("Exiting in 3...")
-                          await setTimeout(1000)
-                          console.log("Exiting in 2...")
-                          await setTimeout(1000)
-                          console.log("Exiting in 1...")
-                          await setTimeout(1000)
+                          console.log("Exiting in 3...");
+                          await setTimeout(1000);
+                          console.log("Exiting in 2...");
+                          await setTimeout(1000);
+                          console.log("Exiting in 1...");
+                          await setTimeout(1000);
                           exit();
                         });
                         return;
