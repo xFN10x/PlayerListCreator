@@ -22,6 +22,9 @@ _An example output_
 
 This project isn't gonna be developed any farther, and I just made it for my own sake, if you want to make add features you can I guess.
 
+> [!NOTE]
+> **Linux is not tested, as I am unable to. If you are on linux you'll need to build it yourself using the linux config.**
+
 ## Building
 
 Player List Creator is made with node.js 25.6.1, so you will need it installed, using nvm (`nvm install 25.6.1 && nvm use 25.6.1`) or with something else.
@@ -29,7 +32,7 @@ Player List Creator is made with node.js 25.6.1, so you will need it installed, 
 Once you get the project cloned, and opened in a terminal, run;
 
 ```c
-    npm install [--save-dev /* Only if planning to edit*/]
+    npm install [--save-dev] // Only if planning to edit
 ```
 
 There are 2 scripts:
