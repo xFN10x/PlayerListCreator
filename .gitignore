@@ -147,3 +147,5 @@ testing
 output.md
 output.txt
 output.html
+dist
+list-maker.js

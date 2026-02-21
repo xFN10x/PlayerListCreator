@@ -15,7 +15,7 @@ const cmd = util.promisify(exec);
 
 //this is run after the list-make.exe is made
 if (fs.existsSync("dist"))
-    await fs.promises.rm("dist", {recursive: true})
+    await fs.promises.rm("dist", { recursive: true })
 await fs.promises.mkdir("dist")
 await fs.promises.mkdir("dist/lib")
 
@@ -39,3 +39,5 @@ requiredJsFiles.forEach(async (v, k) => {
     await fs.promises.copyFile(k, `dist/lib/${v}`)
 })
 
+console.log(`Built to: ${`${process.cwd()}/dist/list-builder${config === "win" ? ".exe" : ""}`}`)
+process.exit()
