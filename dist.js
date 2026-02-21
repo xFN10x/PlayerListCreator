@@ -24,20 +24,12 @@ console.log("Installing modules...")
 await cmd("npm install")
 console.log("Building Typescript...")
 await cmd("npx tsc")
-/*var path = await i.question("What is the path of your node executable? (Leave blank if not using nvm) ")
-if (path == "")
-    path = "node"
-else if (path == 1)
-    path = "\"C:\\Program Files\\nodejs\\node.exe\""*/
+
 var config = await i.question("What config do you want to use? (win, lin) ")
+console.log("Bundling...")
+await cmd(`npx esbuild list-maker.js --bundle --platform=node --outfile=bundle.js`)
 console.log("Creating SEA...")
 await cmd(`"${process.execPath}" --build-sea ${config}-config.json`)
-
-console.log("Copying Dependancies...")
-requiredJsFiles.forEach(async (v, k) => {
-    console.log("Copying: " + k)
-    await fs.promises.copyFile(k, `dist/lib/${v}`)
-})
 
 console.log(`Built to: ${`${process.cwd()}/dist/list-builder${config === "win" ? ".exe" : ""}`}`)
 process.exit()

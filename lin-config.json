@@ -1,5 +1,5 @@
 {
-    "main": "list-maker.js",
+    "main": "bundle.js",
     "output": "dist/list-make",
     "execArgv": ["--no-warnings"]
 }

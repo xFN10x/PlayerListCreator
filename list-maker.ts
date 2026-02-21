@@ -2,10 +2,7 @@ import readline from "node:readline";
 import fs from "node:fs";
 import { exit } from "node:process";
 import { setTimeout } from "node:timers/promises";
-import { createRequire } from "node:module";
-if (fs.existsSync("lib/nbt.js")) require = createRequire(`${process.cwd()}/lib/nbt.js`);
-else require = createRequire(`${process.cwd()}/node_modules/prismarine-nbt/nbt.js`);
-import nbt from "prismarine-nbt";
+import nbt from "prismarine-nbt"
 
 const rl = readline.createInterface(process.stdin, process.stdout);
 
