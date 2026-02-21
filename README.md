@@ -25,6 +25,10 @@ This project isn't gonna be developed any farther, and I just made it for my own
 > [!NOTE]
 > **Linux is not tested, as I am unable to. If you are on linux you'll need to build it yourself using the linux config.**
 
+## Useage
+To use this, just open up the `list-make.exe` as a normal exe, or in a terminal; (if it crashes.)
+It will ask for your world directory, and this app also supports floodgate/geyset player uuids.
+
 ## Building
 
 Player List Creator is made with node.js 25.6.1, so you will need it installed, using nvm (`nvm install 25.6.1 && nvm use 25.6.1`) or with something else.
