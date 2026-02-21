@@ -4,11 +4,6 @@ import util from "util"
 import rlp from "readline/promises"
 
 const i = rlp.createInterface(process.stdin, process.stdout)
-const requiredJsFiles = new Map()
-requiredJsFiles.set(
-    "node_modules/prismarine-nbt/nbt.js",
-    "nbt.js"
-)
 
 
 const cmd = util.promisify(exec);
@@ -17,7 +12,6 @@ const cmd = util.promisify(exec);
 if (fs.existsSync("dist"))
     await fs.promises.rm("dist", { recursive: true })
 await fs.promises.mkdir("dist")
-await fs.promises.mkdir("dist/lib")
 
 
 console.log("Installing modules...")
